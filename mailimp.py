@@ -5,10 +5,14 @@ import os,pwd
 import subprocess
 import smtplib
 import email,email.utils
+import syslog
+
+syslog.openlog('mailimp')
 
 def log(txt):
     sys.stderr.write(txt)
     sys.stderr.write('\n')
+    syslog.syslog(txt)
 
 def procmail(name=None,
              domain=None,
