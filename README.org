@@ -1,0 +1,7 @@
+* MailImp - simple mailing lists
+** basic principles
+- one dedicated user per mailing list
+- receive email via =.forward= or =.procmailrc=
+- send email via =SMTP=
+- configure via python script
+- =systemd= for service/timers/logs
