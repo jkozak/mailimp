@@ -2,6 +2,7 @@
 ** basic principles
 - one dedicated user per mailing list
 - receive email via =.forward= or =.procmailrc=
-- send email via =SMTP=
+ - =flock= to serialise
+- send emails via =SMTP=
 - configure via python script
 - =systemd= for service/timers/logs

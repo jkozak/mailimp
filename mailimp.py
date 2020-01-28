@@ -4,7 +4,7 @@ import sys
 import os,pwd
 import subprocess
 import smtplib
-from email.message import EmailMessage
+import email,email.utils
 
 def log(txt):
     sys.stderr.write(txt)
@@ -14,36 +14,53 @@ def procmail(name=None,
              domain=None,
              smtphost='localhost',
              members=[],
-             body=None):
+             dry_run=False,
+             text=None):
 
     # validate parms
-    if body is None:
-        body = sys.stdin.read()
+    if text is None:
+        text = sys.stdin.read()
     if name is None:
         name = pwd.getpwuid(os.getuid())[0] # name of mailing list
     if domain is None:
-        domain = subprocess.check_output('dnsdomainname').strip()
+        domain = subprocess.check_output('dnsdomainname',encoding='utf-8').strip()
+        if not domain:
+            log("no domain specified")
+            return
     if smtphost is None:
         smtphost = 'localhost'
+    members = [email.utils.parseaddr(m)[1] for m in members]
 
-    # build a mail object
-    msg = EmailMessage()
-    msg.set_content(body)
-    author = msg['From']
+    # build a mail object suitable for sending on
+    msg     = email.message_from_string(text)
+    auth_nv = email.utils.parseaddr(msg['From'])
+    author  = auth_nv[1]
+    del msg['To']
+    del msg['Sender']
+    del msg['From']
+    del msg['Cc']
+    del msg['Bcc']
+    del msg['Reply-To']
+    msg['Reply-To'] = msg['From'] = f"{auth_nv[0]} via {name} mailing list <{name}@{domain}>"
 
-    # check author is a member
+    # check author is a list member
     if author not in members:
         log(f"{author} is not a member")
         # +++ stash message somewhere +++
         return
 
     # send messages out
-    msg['From'] = f"{name} mailing list <{name}@{domain}>"
-    s           = smtplib.SMTP(smtphost)
+    s = smtplib.SMTP(smtphost)
     for m in members:
+        del msg['To']
         if m!=author:
             msg['Sender'] = author
             msg['To']     = m
-            s.send_message(msg)
+            if dry_run:
+                log(f"--------------------------------------------\n\n"
+                    f"{msg.as_string()}\n"
+                    f"--------------------------------------------")
+            else:
+                s.send_message(msg)
             log(f"sent msg {msg['Message-Id']} to {m}")
     s.quit()
