@@ -62,7 +62,7 @@ def procmail(name=None,
             msg['To']     = m
             if dry_run:
                 log(("--------------------------------------------\n\n"
-                     "\n"
+                     "%s\n"
                      "--------------------------------------------")%(msg.as_string(),) )
             else:
                 s.send_message(msg)
