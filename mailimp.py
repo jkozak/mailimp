@@ -60,11 +60,25 @@ def procmail(name=None,
         if m!=author:
             msg['Sender'] = author
             msg['To']     = m
+            log("send msg %s to %s"%(msg['Message-Id'],m))
             if dry_run:
                 log(("--------------------------------------------\n\n"
                      "%s\n"
                      "--------------------------------------------")%(msg.as_string(),) )
             else:
-                s.send_message(msg)
-            log("sent msg %s to %s"%(msg['Message-Id'],m))
+                try:
+                    s.send_message(msg)
+                except:
+                    e = sys.exc_info()[0]
+                    log("failed: %s"%(e,))
     s.quit()
+
+def new_list(name):
+    subprocess.check_output("adduser --system --group %s"%(name,))
+    # +++ create /home/{name}/rcve.py +++
+    # +++ create .forward file +++
+    #   "|/usr/bin/flock /home/{name}/lockfile /home/{name}/rcve.py"
+
+def del_list(name):
+    # +++ rm -rf /home/{name} +++
+    pass

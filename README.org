@@ -3,6 +3,6 @@
 - one dedicated user per mailing list
 - receive email via =.forward= or =.procmailrc=
  - =flock= to serialise
-- send emails via =SMTP=
+- send emails via =SMTP= local daemon
 - configure via python script
 - =systemd= for service/timers/logs
