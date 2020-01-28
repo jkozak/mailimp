@@ -66,5 +66,5 @@ def procmail(name=None,
                      "--------------------------------------------")%(msg.as_string(),) )
             else:
                 s.send_message(msg)
-            log(f"sent msg {msg['Message-Id']} to {m}")
+            log("sent msg %s to %s"%(msg['Message-Id'],m))
     s.quit()
