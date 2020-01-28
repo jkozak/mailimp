@@ -15,7 +15,8 @@ def log(txt):
     syslog.syslog(txt)
 
 def set_log(_log):
-    log = log_
+    global log
+    log = _log
 
 def procmail(name=None,
              domain=None,

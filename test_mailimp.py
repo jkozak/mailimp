@@ -2,6 +2,7 @@ import mailimp
 
 import pytest
 import email,email.utils
+import copy
 
 @pytest.fixture
 def smtp_connection():
@@ -10,7 +11,7 @@ def smtp_connection():
             self.msgs = []
             self.is_open = True
         def send_message(self,msg):
-            self.msgs.append(msg)
+            self.msgs.append(copy.deepcopy(msg))
         def quit(self):
             self.is_open = False
     return SmtpConn()
@@ -24,7 +25,9 @@ def log():
             self.msgs.append(msg)
     return Log()
 
-def test_it_works_the_way_I_think_it_does_1(smtp_connection):
+def test_it_works_the_way_I_think_it_does_1(smtp_connection,log):
+    mailimp.set_log(log)
+    assert len(log.msgs)==0
     assert len(smtp_connection.msgs)==0
     assert smtp_connection.is_open
     smtp_connection.send_message("text")
@@ -35,7 +38,7 @@ def test_it_works_the_way_I_think_it_does_1(smtp_connection):
     assert not smtp_connection.is_open
 
 def test_it_works_the_way_I_think_it_does_2(smtp_connection):
-    assert len(smtp_connection.msgs)==0
+    assert len(smtp_connection.msgs)==0,"get a new connection each time"
 
 EMAIL_TEXT = '''\
 From: z@y.co
@@ -46,6 +49,7 @@ here is the news
 '''
 
 def test_ignore_non_member(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -54,8 +58,11 @@ def test_ignore_non_member(smtp_connection,log):
                      smtp_connection=smtp_connection)
     assert len(smtp_connection.msgs)==0
     assert not smtp_connection.is_open
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="z@y.co is not a member"
 
 def test_send_one(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -64,6 +71,24 @@ def test_send_one(smtp_connection,log):
                      smtp_connection=smtp_connection)
     assert len(smtp_connection.msgs)==1
     assert not smtp_connection.is_open
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="send msg <abcdef> to a@b.co"
+
+def test_send_one_crlf(smtp_connection,log):
+    mailimp.set_log(log)
+    email_text = EMAIL_TEXT.replace('\n','\r\n')
+    assert EMAIL_TEXT!=email_text
+    mailimp.procmail(name='imptest',
+                     domain='i.co',
+                     smtphost='localhost',
+                     members=['a@b.co','z@y.co'],
+                     text=email_text,
+                     smtp_connection=smtp_connection)
+    assert len(smtp_connection.msgs)==1
+    assert smtp_connection.msgs[0]['To']=='a@b.co'
+    assert not smtp_connection.is_open
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="send msg <abcdef> to a@b.co"
 
 EMAIL_TEXT_FANCY = '''\
 From: Mr Z <z@y.co>
@@ -74,6 +99,7 @@ here is the news
 '''
 
 def test_send_fancy_email_address(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -81,9 +107,13 @@ def test_send_fancy_email_address(smtp_connection,log):
                      text=EMAIL_TEXT_FANCY,
                      smtp_connection=smtp_connection)
     assert len(smtp_connection.msgs)==1
+    assert smtp_connection.msgs[0]['To']=='a@b.co'
     assert not smtp_connection.is_open
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="send msg <abcdef> to a@b.co"
 
 def test_send_two(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -91,7 +121,10 @@ def test_send_two(smtp_connection,log):
                      text=EMAIL_TEXT,
                      smtp_connection=smtp_connection)
     assert len(smtp_connection.msgs)==2
+    assert smtp_connection.msgs[0]['To']=='a@b.co'
+    assert smtp_connection.msgs[1]['To']=='b@c.co'
     assert not smtp_connection.is_open
+    assert len(log.msgs)==2
 
 EMAIL_TEXT_MANY_HEADERS = '''\
 From: z@y.co
@@ -104,6 +137,7 @@ here is the news
 '''
 
 def test_sent_headers(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -113,13 +147,15 @@ def test_sent_headers(smtp_connection,log):
     assert len(smtp_connection.msgs)==1
     assert not smtp_connection.is_open
     msg = smtp_connection.msgs[0]
-    assert not msg['To']
+    assert msg['To']=='a@b.co'
     assert email.utils.parseaddr(msg['From'])[0]=='imptest mailing list'
     assert email.utils.parseaddr(msg['From'])[1]=='imptest@i.co'
     assert email.utils.parseaddr(msg['Reply-To'])[1]=='imptest@i.co'
     assert not msg['Cc']
     assert not msg['Bcc']
     assert email.utils.parseaddr(msg['Sender'])[1]=='z@y.co'
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="send msg <abcdef> to a@b.co"
 
 EMAIL_TEXT_MANY_HEADERS_FANCY = '''\
 From: Mr Z. <z@y.co>
@@ -132,6 +168,7 @@ here is the news
 '''
 
 def test_sent_headers_fancy(smtp_connection,log):
+    mailimp.set_log(log)
     mailimp.procmail(name='imptest',
                      domain='i.co',
                      smtphost='localhost',
@@ -141,10 +178,13 @@ def test_sent_headers_fancy(smtp_connection,log):
     assert len(smtp_connection.msgs)==1
     assert not smtp_connection.is_open
     msg = smtp_connection.msgs[0]
-    assert not msg['To']
+    assert msg['To']=='a@b.co'
     assert email.utils.parseaddr(msg['From'])[0]=='Mr Z. via imptest mailing list'
     assert email.utils.parseaddr(msg['From'])[1]=='imptest@i.co'
     assert email.utils.parseaddr(msg['Reply-To'])[1]=='imptest@i.co'
     assert not msg['Cc']
     assert not msg['Bcc']
     assert email.utils.parseaddr(msg['Sender'])[1]=='z@y.co'
+    assert msg['Message-ID']=='<abcdef>'
+    assert len(log.msgs)==1
+    assert log.msgs[0]=="send msg <abcdef> to a@b.co"
