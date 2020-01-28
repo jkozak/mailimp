@@ -41,11 +41,11 @@ def procmail(name=None,
     del msg['Cc']
     del msg['Bcc']
     del msg['Reply-To']
-    msg['Reply-To'] = msg['From'] = f"{auth_nv[0]} via {name} mailing list <{name}@{domain}>"
+    msg['Reply-To'] = msg['From'] = "%s via %s mailing list <%s@%s>"%(auth_nv[0],name,name,domain)
 
     # check author is a list member
     if author not in members:
-        log(f"{author} is not a member")
+        log("%s is not a member"%(author,))
         # +++ stash message somewhere +++
         return
 
@@ -57,9 +57,9 @@ def procmail(name=None,
             msg['Sender'] = author
             msg['To']     = m
             if dry_run:
-                log(f"--------------------------------------------\n\n"
-                    f"{msg.as_string()}\n"
-                    f"--------------------------------------------")
+                log(("--------------------------------------------\n\n"
+                     "\n"
+                     "--------------------------------------------")%(msg.as_string(),) )
             else:
                 s.send_message(msg)
             log(f"sent msg {msg['Message-Id']} to {m}")
