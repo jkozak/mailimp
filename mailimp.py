@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""MailImp - minimal mailing list
+
+"""
+
 import sys
 import os,pwd
 import subprocess

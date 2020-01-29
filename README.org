@@ -1,8 +1,18 @@
 * MailImp - simple mailing lists
-** basic principles
+** design principles
 - one dedicated user per mailing list
 - receive email via =.forward= or =.procmailrc=
  - =flock= to serialise
 - send emails via =SMTP= local daemon
 - configure via python script
 - =systemd= for service/timers/logs
+- don't care about portability outside the unix world
+** TODO two stage operation
+- =.forward= file stashes content (FLIH)
+ - =~/spool/<content-hash>-<email-dest>= read-only
+  - hard linked for any given <content-hash>
+- second (SLIH) process
+ - takes files from spool and does the obvious
+ - runs off timer
+ - launched as a process by FLIH
+- maintenance sanity check validates hashes
