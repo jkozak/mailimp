@@ -6,6 +6,7 @@ import subprocess
 import smtplib
 import email,email.utils
 import syslog
+import shutil
 
 syslog.openlog('mailimp')
 
@@ -79,11 +80,29 @@ def procmail(name=None,
             smtp_connection.quit()
 
 def new_list(name):
-    subprocess.check_output("adduser --system --group %s"%(name,))
-    # +++ create /home/{name}/rcve.py +++
-    # +++ create .forward file +++
-    #   "|/usr/bin/flock /home/{name}/lockfile /home/{name}/rcve.py"
+    try:
+        subprocess.check_output("useradd -rmU -s /bin/false %s"%(name,))
+    except:
+        sys.exit("failed to add list user")
+    home_dir = pwd.getpwnam(name)[5]
+    # +++ maybe: subprocess.check_output("rm -rf %s/*"%(home_dir,))
+    open(os.path.join(home_dir,'main.py','w')).write('''\
+#!/usr/bin/env python3
+
+MEMBERS = []
+
+if __name__=='__main__':
+    import mailimp
+    mailimp.procmail(members=MEMBERS)
+
+''')
+    open(os.path.join(home_dir,'.forward','w')).write('''\
+"|/usr/bin/flock %s/lockfile %s/main.py"
+'''%(home_dir,home_dir) )
+    subprocess.check_output("chown -R %s.%s %s"%(name,name,home_dir))
 
 def del_list(name):
-    # +++ rm -rf /home/{name} +++
-    pass
+    try:
+        subprocess.check_output("userdel -rf %s"%(name,))
+    except:
+        sys.exit("failed to delete list user")
