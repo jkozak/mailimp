@@ -1,4 +1,6 @@
 * MailImp - simple mailing lists
+** Introduction
+Don't use this yet.
 ** design principles
 - one dedicated user per mailing list
 - receive email via =.forward= or =.procmailrc=
